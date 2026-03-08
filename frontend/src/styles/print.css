@@ -1,0 +1,84 @@
+@media print {
+  .no-print,
+  nav,
+  aside,
+  header,
+  .sidebar,
+  .toast-container,
+  button:not(.print-visible) {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    font-size: 11pt;
+    color: #000;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  .print-page-break {
+    page-break-before: always;
+  }
+
+  /* Remove shadows and adjust borders for print */
+  [class*="rounded-xl"],
+  [class*="shadow"] {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+
+  /* Full width layout for print */
+  .flex.h-screen {
+    display: block !important;
+  }
+
+  .flex-1.overflow-y-auto {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Calendar print adjustments */
+  .rbc-calendar {
+    font-size: 9pt;
+  }
+
+  .rbc-event {
+    padding: 1px 2px !important;
+    font-size: 8pt !important;
+  }
+
+  /* Table print */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  table th,
+  table td {
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    text-align: left;
+  }
+
+  /* Status badges - ensure colors print */
+  .bg-red-100 { background-color: #fee2e2 !important; }
+  .bg-yellow-100 { background-color: #fef3c7 !important; }
+  .bg-green-100 { background-color: #dcfce7 !important; }
+  .bg-blue-100 { background-color: #dbeafe !important; }
+
+  @page {
+    margin: 0.75in;
+    size: letter;
+  }
+}
