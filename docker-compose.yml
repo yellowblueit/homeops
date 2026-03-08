@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
   # =====================
   # Supabase Core Services
   # =====================
   db:
-    image: supabase/postgres:15.6.1.143
+    image: supabase/postgres:15.8.1.085
     container_name: homemaint-db
     restart: unless-stopped
     ports:
@@ -50,7 +48,7 @@ services:
         condition: service_healthy
 
   auth:
-    image: supabase/gotrue:v2.164.0
+    image: supabase/gotrue:v2.186.0
     container_name: homemaint-auth
     restart: unless-stopped
     environment:
@@ -95,7 +93,7 @@ services:
         condition: service_healthy
 
   rest:
-    image: postgrest/postgrest:v12.2.3
+    image: postgrest/postgrest:v14.5
     container_name: homemaint-rest
     restart: unless-stopped
     environment:
@@ -111,7 +109,7 @@ services:
         condition: service_healthy
 
   storage:
-    image: supabase/storage-api:v1.11.13
+    image: supabase/storage-api:v1.37.8
     container_name: homemaint-storage
     restart: unless-stopped
     environment:
@@ -138,7 +136,7 @@ services:
         condition: service_started
 
   imgproxy:
-    image: darthsim/imgproxy:v3.8.0
+    image: darthsim/imgproxy:v3.30.1
     container_name: homemaint-imgproxy
     restart: unless-stopped
     environment:
@@ -150,7 +148,7 @@ services:
       - storage-data:/var/lib/storage
 
   studio:
-    image: supabase/studio:20241202-4f5f87f
+    image: supabase/studio:2026.02.16-sha-26c615c
     container_name: homemaint-studio
     restart: unless-stopped
     ports:
@@ -174,7 +172,7 @@ services:
         condition: service_started
 
   meta:
-    image: supabase/postgres-meta:v0.84.2
+    image: supabase/postgres-meta:v0.95.2
     container_name: homemaint-meta
     restart: unless-stopped
     environment:
