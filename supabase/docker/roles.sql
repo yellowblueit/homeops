@@ -81,3 +81,9 @@ CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
 
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+
+-- Database-level permissions (needed for migrations)
+GRANT ALL PRIVILEGES ON DATABASE postgres TO supabase_auth_admin;
+GRANT ALL PRIVILEGES ON DATABASE postgres TO supabase_storage_admin;
+GRANT CREATE ON SCHEMA public TO supabase_auth_admin;
+GRANT CREATE ON SCHEMA public TO supabase_storage_admin;
