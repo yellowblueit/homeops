@@ -14,10 +14,12 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./supabase/docker/roles.sql:/docker-entrypoint-initdb.d/init-scripts/00-roles.sql
+      - ./supabase/docker/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/01-jwt.sql
       - ./supabase/migrations:/app/migrations
-      - ./supabase/docker/init-migrations.sh:/docker-entrypoint-initdb.d/99-app-migrations.sh
+      - ./supabase/docker/init-migrations.sh:/docker-entrypoint-initdb.d/migrations/99-app-migrations.sh
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -h 127.0.0.1"]
       interval: 10s
       timeout: 5s
       retries: 5
