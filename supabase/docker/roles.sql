@@ -63,6 +63,13 @@ ALTER USER pgbouncer WITH PASSWORD :'pgpass';
 ALTER USER postgres WITH PASSWORD :'pgpass';
 ALTER USER supabase_admin WITH PASSWORD :'pgpass';
 
+-- Set search_path for each role (critical for GoTrue/PostgREST to resolve tables)
+ALTER ROLE supabase_auth_admin SET search_path = 'auth';
+ALTER ROLE authenticator SET search_path = 'public';
+ALTER ROLE postgres SET search_path = 'public', 'extensions';
+ALTER ROLE supabase_admin SET search_path = 'public', 'extensions';
+ALTER ROLE supabase_storage_admin SET search_path = 'storage';
+
 -- Auth admin needs to own auth schema
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO supabase_auth_admin;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO supabase_auth_admin;
