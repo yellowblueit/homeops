@@ -112,9 +112,11 @@ export function HomesPage() {
       setSelectedHome(home)
       setShowForm(false)
       setFormData({ name: '', address_line1: '', city: '', state: '', zip_code: '', home_type: '', year_built: '', square_footage: '', bedrooms: '', bathrooms: '' })
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to create home'
-      setError(msg)
+    } catch (err: unknown) {
+      const e = err as { message?: string; details?: string; hint?: string }
+      const msg = e?.message || 'Failed to create home'
+      const details = e?.details ? ` (${e.details})` : ''
+      setError(msg + details)
     }
   }
 
