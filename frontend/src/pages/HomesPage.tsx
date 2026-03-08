@@ -1,9 +1,39 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useHomes, useCreateHome, useDeleteHome } from '@/hooks/useHomes'
 import { useHomeContext } from '@/contexts/HomeContext'
-import { Plus, Home, MapPin, Trash2, ChevronRight, Loader2 } from 'lucide-react'
+import { useAddressSearch, type ParsedAddress } from '@/hooks/useAddressSearch'
+import { Plus, Home, MapPin, Trash2, ChevronRight, Loader2, Search } from 'lucide-react'
 import { HOME_TYPES } from '@/lib/constants'
+
+const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
+  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
+  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
+  'VA','WA','WV','WI','WY','DC',
+]
+
+// Map full state names to abbreviations
+const STATE_ABBREVS: Record<string, string> = {
+  'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
+  'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
+  'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
+  'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
+  'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+  'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
+  'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
+  'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
+  'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
+  'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+  'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
+  'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
+  'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC',
+}
+
+function abbrevState(state: string): string {
+  if (state.length === 2) return state.toUpperCase()
+  return STATE_ABBREVS[state] || state
+}
 
 export function HomesPage() {
   const navigate = useNavigate()
@@ -12,8 +42,14 @@ export function HomesPage() {
   const { setSelectedHome } = useHomeContext()
   const createHome = useCreateHome()
   const deleteHome = useDeleteHome()
+  const { suggestions, isSearching, search, clear } = useAddressSearch()
 
   const [showForm, setShowForm] = useState(searchParams.get('action') === 'new')
+  const [error, setError] = useState<string | null>(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
+  const addressInputRef = useRef<HTMLInputElement>(null)
+
   const [formData, setFormData] = useState({
     name: '',
     address_line1: '',
@@ -27,23 +63,59 @@ export function HomesPage() {
     bathrooms: '',
   })
 
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node) &&
+          addressInputRef.current && !addressInputRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const handleAddressChange = (value: string) => {
+    setFormData(f => ({ ...f, address_line1: value }))
+    search(value)
+    setShowSuggestions(true)
+  }
+
+  const selectAddress = (addr: ParsedAddress) => {
+    setFormData(f => ({
+      ...f,
+      address_line1: addr.address_line1,
+      city: addr.city,
+      state: abbrevState(addr.state),
+      zip_code: addr.zip_code,
+    }))
+    setShowSuggestions(false)
+    clear()
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const home = await createHome.mutateAsync({
-      name: formData.name,
-      address_line1: formData.address_line1 || null,
-      city: formData.city || null,
-      state: formData.state || null,
-      zip_code: formData.zip_code || null,
-      home_type: formData.home_type || null,
-      year_built: formData.year_built ? parseInt(formData.year_built) : null,
-      square_footage: formData.square_footage ? parseInt(formData.square_footage) : null,
-      bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
-      bathrooms: formData.bathrooms ? parseFloat(formData.bathrooms) : null,
-    })
-    setSelectedHome(home)
-    setShowForm(false)
-    setFormData({ name: '', address_line1: '', city: '', state: '', zip_code: '', home_type: '', year_built: '', square_footage: '', bedrooms: '', bathrooms: '' })
+    setError(null)
+    try {
+      const home = await createHome.mutateAsync({
+        name: formData.name,
+        address_line1: formData.address_line1 || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        zip_code: formData.zip_code || null,
+        home_type: formData.home_type || null,
+        year_built: formData.year_built ? parseInt(formData.year_built) : null,
+        square_footage: formData.square_footage ? parseInt(formData.square_footage) : null,
+        bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
+        bathrooms: formData.bathrooms ? parseFloat(formData.bathrooms) : null,
+      })
+      setSelectedHome(home)
+      setShowForm(false)
+      setFormData({ name: '', address_line1: '', city: '', state: '', zip_code: '', home_type: '', year_built: '', square_footage: '', bedrooms: '', bathrooms: '' })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to create home'
+      setError(msg)
+    }
   }
 
   const handleDelete = async (homeId: string) => {
@@ -56,7 +128,7 @@ export function HomesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">My Homes</h1>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { setShowForm(true); setError(null) }}
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
@@ -68,6 +140,13 @@ export function HomesPage() {
       {showForm && (
         <div className="rounded-xl border border-border bg-white p-6">
           <h2 className="mb-4 text-lg font-semibold">Add a New Home</h2>
+
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
@@ -81,16 +160,52 @@ export function HomesPage() {
                   className="w-full rounded-lg border border-input px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <input
-                  type="text"
-                  value={formData.address_line1}
-                  onChange={e => setFormData(f => ({ ...f, address_line1: e.target.value }))}
-                  placeholder="123 Main Street"
-                  className="w-full rounded-lg border border-input px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                />
+
+              {/* Address with autocomplete */}
+              <div className="sm:col-span-2 relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Address
+                  {isSearching && <Loader2 className="ml-1 inline h-3 w-3 animate-spin" />}
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    ref={addressInputRef}
+                    type="text"
+                    value={formData.address_line1}
+                    onChange={e => handleAddressChange(e.target.value)}
+                    onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                    placeholder="Start typing an address..."
+                    className="w-full rounded-lg border border-input pl-9 pr-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+
+                {/* Suggestions dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-white shadow-lg"
+                  >
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => selectAddress(s)}
+                        className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
+                      >
+                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                        <div>
+                          <div className="font-medium">{s.address_line1}</div>
+                          <div className="text-xs text-gray-500">
+                            {[s.city, s.state, s.zip_code].filter(Boolean).join(', ')}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                 <input
@@ -103,13 +218,16 @@ export function HomesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.state}
                     onChange={e => setFormData(f => ({ ...f, state: e.target.value }))}
-                    maxLength={2}
                     className="w-full rounded-lg border border-input px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
+                  >
+                    <option value="">--</option>
+                    {US_STATES.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">ZIP</label>
