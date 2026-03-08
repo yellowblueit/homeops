@@ -11,7 +11,8 @@
 
 set -e
 
-APP_DIR="/opt/home-maintenance"
+# Auto-detect project directory (where this script lives)
+APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DOMAIN="${DOMAIN:-}"
 
 echo "============================================"
